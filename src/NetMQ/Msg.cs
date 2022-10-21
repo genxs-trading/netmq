@@ -101,7 +101,7 @@ namespace NetMQ
         /// The maximum length of a group (Radio/Dish)
         /// </summary>
         public const int MaxGroupLength = 255;
-        
+
         /// <summary>An atomic reference count for knowing when to release a pooled data buffer back to the <see cref="BufferPool"/>.</summary>
         /// <remarks>Will be <c>null</c> unless <see cref="MsgType"/> equals <see cref="NetMQ.MsgType.Pool"/>.</remarks>
         private AtomicCounter? m_refCount;
@@ -125,7 +125,7 @@ namespace NetMQ
         /// Returns true if the msg is join message
         /// </summary>
         public bool IsJoin => MsgType == MsgType.Join;
-        
+
         /// <summary>
         /// Returns true if the msg is leave message
         /// </summary>    
@@ -171,9 +171,9 @@ namespace NetMQ
         /// Get the "Has-More" flag, which when set on a message-queue frame indicates that there are more frames to follow.
         /// </summary>
         public bool HasMore => (Flags & MsgFlags.More) == MsgFlags.More;
-        
+
         internal bool HasCommand => (Flags & MsgFlags.Command) == MsgFlags.Command;
-        
+
         /// <summary>
         /// Get whether the <see cref="Data"/> buffer of this <see cref="Msg"/> is shared with another instance.
         /// Only applies to pooled message types.
@@ -253,7 +253,7 @@ namespace NetMQ
         /// </remarks>
         [Obsolete("Use implicit casting to Span or Slice instead")]
         public byte[]? Data => m_data;
-        
+
         /// <summary>
         /// Return the internal buffer as Span
         /// </summary>
@@ -262,10 +262,10 @@ namespace NetMQ
         {
             if (m_data == null)
                 return Span<byte>.Empty;
-            
-            return new Span<byte>(m_data, m_offset, Size);  
+
+            return new Span<byte>(m_data, m_offset, Size);
         }
-        
+
         /// <summary>
         /// Return the internal buffer as Memory
         /// </summary>
@@ -274,8 +274,8 @@ namespace NetMQ
         {
             if (m_data == null)
                 return Memory<byte>.Empty;
-            
-            return new Memory<byte>(m_data, m_offset, Size);  
+
+            return new Memory<byte>(m_data, m_offset, Size);
         }
 
         /// <summary>
@@ -286,11 +286,11 @@ namespace NetMQ
         {
             if (m_data == null && offset > 0)
                 throw new ArgumentOutOfRangeException(nameof(offset));
-            
+
             if (m_offset + offset > Size)
                 throw new ArgumentOutOfRangeException(nameof(offset));
-            
-            return new Span<byte>(m_data, m_offset + offset, Size - offset);  
+
+            return new Span<byte>(m_data, m_offset + offset, Size - offset);
         }
 
         /// <summary>
@@ -302,10 +302,10 @@ namespace NetMQ
         {
             if (m_data == null && offset > 0)
                 throw new ArgumentOutOfRangeException(nameof(offset));
-            
+
             if (m_offset + offset > Size)
                 throw new ArgumentOutOfRangeException(nameof(offset));
-            
+
             if (m_offset + offset + count > Size)
                 throw new ArgumentOutOfRangeException(nameof(offset));
 
@@ -318,9 +318,9 @@ namespace NetMQ
         /// <param name="span">The span to copy content to</param>
         public void CopyTo(Span<byte> span)
         {
-            ((Span<byte>) this).CopyTo(span);
+            ((Span<byte>)this).CopyTo(span);
         }
-        
+
         /// <summary>
         /// Return a copy of the internal buffer as byte array
         /// </summary>
@@ -334,7 +334,7 @@ namespace NetMQ
 
             return data;
         }
-        
+
         /// <summary>
         /// Implicit case of of Msg to Span
         /// </summary>
@@ -343,7 +343,7 @@ namespace NetMQ
         {
             return new Span<byte>(msg.m_data, msg.m_offset, msg.Size);
         }
-        
+
         /// <summary>
         /// Implicit case of of Msg to ReadOnlySpan
         /// </summary>
@@ -352,16 +352,16 @@ namespace NetMQ
         {
             return new Span<byte>(msg.m_data, msg.m_offset, msg.Size);
         }
-        
+
         /// <summary>
         /// Returns span enumerator, to iterate of the Msg
         /// </summary>
         /// <returns>Span Enumerator</returns>
         public Span<byte>.Enumerator GetEnumerator()
         {
-            return ((Span<byte>) this).GetEnumerator();
+            return ((Span<byte>)this).GetEnumerator();
         }
-        
+
         #region Initialisation
 
         /// <summary>
@@ -531,7 +531,7 @@ namespace NetMQ
                 // TODO shouldn't we set the type to uninitialised, or call clear, here? the object has a null refCount, but other methods may try to use it
             }
         }
-        
+
         /// <summary>
         /// Override the Object ToString method to show the object-type, and values of the MsgType, Size, and Flags properties.
         /// </summary>
@@ -626,11 +626,27 @@ namespace NetMQ
         /// </summary>
         /// <param name="src">the source byte-array to copy from</param>
         /// <param name="offset">index within the internal Data array to copy that byte to</param>
-        public void Put(Span<byte> src, int offset) 
+        public void Put(Span<byte> src, int offset)
         {
             src.CopyTo(Slice(offset));
         }
-        
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="byteSpan"></param>
+        /// <returns></returns>
+        public delegate int FillerFunc(Span<byte> byteSpan, ReadOnlySpan<byte> topicSpan, object obj);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="filler"></param>
+        public void Fill(FillerFunc filler, ReadOnlySpan<byte> topicSpan, object obj)
+        {
+            Size = filler(m_data.AsSpan(), topicSpan, obj);
+        }
+
         /// <summary>
         /// Get and set the byte value in the <see cref="Data"/> buffer at a specific index.
         /// </summary>
